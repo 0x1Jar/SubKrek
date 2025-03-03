@@ -42,7 +42,7 @@ The project is organized into the following modules:
 2.  Clone the repository:
 
     ```bash
-    git clone https://github.com/0x1jar/SubKrek.git
+    git clone https://github.com/0x1Jar/SubTahu.git
     cd SubKrek
     ```
 
