@@ -2,8 +2,13 @@
 
 SubTahu is a high-performance, asynchronous subdomain discovery tool written in Rust. It combines modern subdomain scanning techniques with historical data from the Wayback Machine to provide comprehensive domain reconnaissance capabilities.
 
+## Description
+
+SubTahu is designed to help security professionals, researchers, and developers discover subdomains for a given domain. It leverages concurrent scanning and integrates with the Wayback Machine to provide a comprehensive view of a domain's subdomain landscape.
+
 ## What's New
 
+-   **Version 0.1.0:** Initial release of SubTahu.
 -   **Enhanced Scanning Engine:** Improved subdomain validation and scanning for faster and more accurate results.
 -   **Wayback Machine Integration:** Fetch historical subdomain data from the Wayback Machine to uncover hidden subdomains.
 -   **Customizable Concurrency:** Adjust the number of concurrent connections to optimize scanning speed.
@@ -42,7 +47,7 @@ SubTahu is a high-performance, asynchronous subdomain discovery tool written in 
 Basic usage:
 
 ```bash
-cargo run -- -d example.com
+SubTahu -d example.com
 ```
 
 ### Command Line Options
@@ -56,7 +61,7 @@ cargo run -- -d example.com
 To see all available options:
 
 ```bash
-cargo run -- --help
+SubTahu --help
 ```
 
 ### Examples
@@ -64,25 +69,25 @@ cargo run -- --help
 1.  Simple scan with default settings:
 
     ```bash
-    cargo run -- -d google.com
+    SubTahu -d google.com
     ```
 
 2.  Scan with increased concurrency:
 
     ```bash
-    cargo run -- -d google.com -c 200
+    SubTahu -d google.com -c 200
     ```
 
 3.  Use Wayback Machine to find historical subdomains:
 
     ```bash
-    cargo run -- -d google.com -b
+    SubTahu -d google.com -b
     ```
 
 4.  Save results to a file:
 
     ```bash
-    cargo run -- -d google.com -b -o results.txt
+    SubTahu -d google.com -b -o results.txt
     ```
 
 ## Output

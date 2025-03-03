@@ -12,9 +12,9 @@ use utils::extract_domain;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "SubKrek",
+    name = "SubTahu",
     about = "A fast subdomain scanner with Wayback Machine integration for discovering historical subdomains",
-    version
+    version = "0.1.0"
 )]
 struct Args {
     #[arg(short, long, help = "Target domain to scan (e.g., example.com)")]
@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ░░█████████  ░░████████ ████████     █████   ░░████████ ████ █████ ░░████████
  ░░░░░░░░░    ░░░░░░░░ ░░░░░░░░     ░░░░░     ░░░░░░░░ ░░░░ ░░░░░   ░░░░░░░░ 
  
-                (⌐■_■) Subdomain Scanner
+                (⌐■_■) Subdomain Scanner 
 
                     Created by 0x1Jar
     "#.bright_blue().bold());
