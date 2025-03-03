@@ -4,7 +4,7 @@ use regex::Regex;
 
 #[derive(Deserialize)]
 struct WaybackResponse {
-    url: String,
+    _url: String,
 }
 
 pub struct WaybackMachine {
