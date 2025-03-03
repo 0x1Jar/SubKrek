@@ -13,19 +13,20 @@ use utils::extract_domain;
 #[derive(Parser, Debug)]
 #[command(
     name = "SubKrek",
-    about = "A subdomain scanner using Wayback Machine"
+    about = "A fast subdomain scanner with Wayback Machine integration for discovering historical subdomains",
+    version
 )]
 struct Args {
-    #[arg(short, long)]
+    #[arg(short, long, help = "Target domain to scan (e.g., example.com)")]
     domain: String,
 
-    #[arg(short, long, default_value = "50")]
+    #[arg(short, long, default_value = "50", help = "Number of concurrent connections for scanning")]
     concurrency: usize,
 
-    #[arg(short = 'b', long, help = "Use Wayback Machine to find historical subdomains")]
+    #[arg(short = 'b', long, help = "Use Wayback Machine to discover historical subdomains")]
     wayback: bool,
 
-    #[arg(short, long, help = "Output file to save results")]
+    #[arg(short, long, help = "Save results to this output file")]
     output: Option<PathBuf>,
 }
 
@@ -48,6 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       |_____|_____|_|___|_|___|_____|__|__|
                            
          (⌐■_■) Subdomain Scanner v0.1.0
+              Created by 0x1Jar
     "#.bright_blue().bold());
     
     // Extract and validate domain
@@ -56,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{} {}\n", "Target Domain:".yellow(), domain);
 
     // Initialize scanner
-    let scanner = Scanner::new(args.concurrency).await;
+    let scanner = Scanner::new(args.concurrency).await?;
     
     // Fetch historical subdomains if wayback option is enabled
     let mut subdomains = Vec::new();
