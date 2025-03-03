@@ -26,7 +26,7 @@ SubTahu is a high-performance, asynchronous subdomain discovery tool written in 
 
     ```bash
     git clone https://github.com/0x1Jar/SubTahu.git
-    cd SubKrek
+    cd SubTahu
     ```
 
 3.  Build the project:
@@ -35,7 +35,7 @@ SubTahu is a high-performance, asynchronous subdomain discovery tool written in 
     cargo build --release
     ```
 
-    The binary will be available at `target/release/SubKrek`
+    The binary will be available at `target/release/SubTahu`
 
 ## Usage
 
