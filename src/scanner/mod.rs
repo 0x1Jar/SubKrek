@@ -50,9 +50,9 @@ impl Scanner {
         println!("{} {}", "[*]".blue(), format!("Found {} subdomains to scan", total_domains));
         println!("{} {}", "[*]".blue(), format!("Using {} concurrent connections", self.concurrency));
 
-        let pb = self.create_progress_bar(total_domains as u64);
-        let results = self.perform_scan(&subdomains, &pb).await;
-        pb.finish_with_message("scan completed");
+        let progress = self.create_progress_bar(total_domains as u64);
+        let results = self.check_subdomains(&subdomains, &progress).await;
+        progress.finish_with_message("scan completed");
 
         let mut valid_count = 0;
         let mut invalid_count = 0;
@@ -82,15 +82,15 @@ impl Scanner {
         Ok(valid_subdomains)
     }
 
-    async fn perform_scan(&self, subdomains: &[String], pb: &ProgressBar) -> Vec<(String, ScanStatus)> {
+    async fn check_subdomains(&self, subdomains: &[String], progress: &ProgressBar) -> Vec<(String, ScanStatus)> {
         stream::iter(subdomains.to_vec())
             .map(|subdomain| {
-                let pb = pb.clone();
+                let progress = progress.clone();
                 async move {
-                    let addr = format!("{}:80", subdomain);
+                    let endpoint = format!("{}:80", subdomain);
                     let status = match tokio::time::timeout(
                         Duration::from_secs(5),
-                        TcpStream::connect(&addr)
+                        TcpStream::connect(&endpoint)
                     ).await {
                         Ok(Ok(_)) => ScanStatus::Valid,
                         Ok(Err(e)) => match e.kind() {
@@ -100,10 +100,10 @@ impl Scanner {
                         Err(_) => ScanStatus::Invalid,
                     };
                     
-                    pb.inc(1);
+                    progress.inc(1);
                     match &status {
-                        ScanStatus::Valid => pb.println(format!("{} {}", "✓".green(), subdomain.green())),
-                        ScanStatus::Invalid => pb.println(format!("{} {}", "✗".yellow(), subdomain.yellow())),
+                        ScanStatus::Valid => progress.println(format!("{} {}", "✓".green(), subdomain.green())),
+                        ScanStatus::Invalid => progress.println(format!("{} {}", "✗".yellow(), subdomain.yellow())),
                     }
                     (subdomain, status)
                 }
@@ -114,15 +114,15 @@ impl Scanner {
     }
 
     fn create_progress_bar(&self, total: u64) -> ProgressBar {
-        let pb = ProgressBar::new(total);
-        pb.set_style(
+        let progress = ProgressBar::new(total);
+        progress.set_style(
             ProgressStyle::default_bar()
                 .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")
                 .unwrap()
                 .progress_chars("#>-"),
         );
-        pb.set_message("Scanning subdomains...");
-        pb
+        progress.set_message("Scanning subdomains...");
+        progress
     }
 }
 

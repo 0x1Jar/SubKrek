@@ -38,7 +38,7 @@ impl WaybackMachine {
     }
 
     pub async fn fetch_subdomains(&self, domain: &str) -> Result<Vec<String>, WaybackError> {
-        self.log_info("Initializing Wayback Machine scan...");
+        self.info("Initializing Wayback Machine scan...");
         
         let url = format!(
             "http://web.archive.org/cdx/search/cdx?url=*.{}&output=json&fl=original&collapse=urlkey",
@@ -50,7 +50,7 @@ impl WaybackMachine {
             .and_then(|cap| cap.get(1))
             .map(|m| m.as_str())
             .unwrap_or("unknown");
-        self.log_info(&format!("Searching for subdomains of: {}", domain));
+        self.info(&format!("Searching for subdomains of: {}", domain));
 
         let response = self.client.get(&url)
             .send()
@@ -62,7 +62,7 @@ impl WaybackMachine {
                 response.status().as_str(),
                 response.status().canonical_reason().unwrap_or("Unknown error")
             );
-            self.log_error(&error_msg);
+            self.error(&error_msg);
             return Err(WaybackError::HttpError(error_msg));
         }
 
@@ -71,11 +71,11 @@ impl WaybackMachine {
             .map_err(|e| WaybackError::InvalidResponse(e.to_string()))?;
 
         if urls.is_empty() {
-            self.log_warning("Wayback Machine returned empty response");
+            self.warn("Wayback Machine returned empty response");
             return Err(WaybackError::EmptyResponse);
         }
 
-        self.log_success(&format!("Retrieved {} URLs from Wayback Machine", urls.len()));
+        self.success(&format!("Retrieved {} URLs from Wayback Machine", urls.len()));
         
         let urls: Vec<String> = urls.into_iter()
             .skip(1) // Skip header row
@@ -83,13 +83,13 @@ impl WaybackMachine {
             .collect();
 
         let subdomains = self.extract_subdomains(domain, &urls)?;
-        self.log_success(&format!("Found {} unique subdomains", subdomains.len()));
+        self.success(&format!("Found {} unique subdomains", subdomains.len()));
         
         Ok(subdomains)
     }
 
     fn extract_subdomains(&self, base_domain: &str, urls: &[String]) -> Result<Vec<String>, WaybackError> {
-        self.log_info(&format!("Processing {} URLs for subdomain extraction", urls.len()));
+        self.info(&format!("Processing {} URLs for subdomain extraction", urls.len()));
         
         let subdomain_pattern = format!(
             r"(?i)https?://([a-zA-Z0-9][-a-zA-Z0-9]*\.)*{}",
@@ -106,7 +106,7 @@ impl WaybackMachine {
         for url in urls {
             processed += 1;
             if processed % 1000 == 0 {
-                self.log_info(&format!("Processed {} URLs", processed));
+                self.info(&format!("Processed {} URLs", processed));
             }
 
             match re.captures(url) {
@@ -131,27 +131,27 @@ impl WaybackMachine {
         }
 
         if invalid_count > 0 {
-            self.log_warning(&format!("Skipped {} invalid URLs", invalid_count));
+            self.warn(&format!("Skipped {} invalid URLs", invalid_count));
         }
 
         let result: Vec<String> = subdomains.into_iter().collect();
-        self.log_info(&format!("Extracted {} unique subdomains", result.len()));
+        self.info(&format!("Extracted {} unique subdomains", result.len()));
         Ok(result)
     }
 
-    fn log_info(&self, message: &str) {
+    fn info(&self, message: &str) {
         println!("{} {}", "[*]".blue(), message);
     }
 
-    fn log_success(&self, message: &str) {
+    fn success(&self, message: &str) {
         println!("{} {}", "[+]".green(), message);
     }
 
-    fn log_warning(&self, message: &str) {
+    fn warn(&self, message: &str) {
         println!("{} {}", "[!]".yellow(), message);
     }
 
-    fn log_error(&self, message: &str) {
+    fn error(&self, message: &str) {
         println!("{} {}", "[!]".red(), message);
     }
 }
