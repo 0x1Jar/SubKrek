@@ -5,6 +5,8 @@ use std::time::Instant;
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 use crate::wordlist::WordlistManager;
+use std::path::Path;
+use std::fs;
 
 pub struct Scanner {
     resolver: TokioAsyncResolver,
@@ -13,35 +15,60 @@ pub struct Scanner {
 }
 
 impl Scanner {
-    pub async fn new(concurrency: usize, wordlist_dir: &str) -> Self {
+    pub async fn new<P: AsRef<Path>>(concurrency: usize, wordlist_dir: P) -> Self {
         let resolver = TokioAsyncResolver::tokio(
             ResolverConfig::default(),
             ResolverOpts::default(),
         );
 
-        let wordlist_manager = WordlistManager::new(wordlist_dir);
+        // Ensure wordlist directory exists
+        let dir_path = wordlist_dir.as_ref();
+        if !dir_path.exists() {
+            fs::create_dir_all(dir_path).expect("Failed to create wordlist directory");
+        }
 
-        Scanner {
+        let wordlist_manager = WordlistManager::new(dir_path);
+
+        // Create scanner instance
+        let mut scanner = Scanner {
             resolver,
             concurrency,
             wordlist_manager,
+        };
+
+        // Try to load wordlists from the directory
+        match scanner.wordlist_manager.add_directory(".") {
+            Ok(_) => println!("Successfully loaded wordlists from directory"),
+            Err(e) => eprintln!("Warning: Could not load wordlists from directory: {}", e),
         }
+
+        scanner
     }
 
-    pub fn add_wordlist(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn add_wordlist<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Box<dyn std::error::Error>> {
         self.wordlist_manager.add_wordlist(path)?;
         Ok(())
     }
 
-    pub fn add_wordlist_directory(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.wordlist_manager.add_directory(path)?;
-        Ok(())
-    }
-
     pub async fn scan_domains(&mut self, domain: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        self.wordlist_manager.load_all()?;
+        // Load all wordlists
+        match self.wordlist_manager.load_all() {
+            Ok(_) => (),
+            Err(e) => {
+                eprintln!("Error loading wordlists: {}", e);
+                // Try to load from current directory as fallback
+                self.wordlist_manager.add_directory(".")?;
+                self.wordlist_manager.load_all()?;
+            }
+        }
+
         let wordlist: Vec<String> = self.wordlist_manager.get_words().iter().cloned().collect();
         
+        if wordlist.is_empty() {
+            println!("{}", "No valid subdomains found in wordlists".yellow());
+            return Ok(Vec::new());
+        }
+
         let start_time = Instant::now();
         let subdomains = self.generate_subdomains(domain, &wordlist);
         let total_domains = subdomains.len();
@@ -120,8 +147,8 @@ mod tests {
         let mut file = File::create(&test_file_path).unwrap();
         writeln!(file, "www\nmail\ntest").unwrap();
 
-        let mut scanner = Scanner::new(10, temp_dir.path().to_str().unwrap()).await;
-        scanner.add_wordlist(test_file_path.to_str().unwrap()).unwrap();
+        let mut scanner = Scanner::new(10, temp_dir.path()).await;
+        scanner.add_wordlist(test_file_path).unwrap();
         
         // Since we can't reliably test actual DNS resolution in unit tests,
         // we'll just verify that the scanner properly loads and uses the wordlist
