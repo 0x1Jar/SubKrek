@@ -2,21 +2,18 @@ use colored::*;
 use futures::stream::{self, StreamExt};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Instant;
-use trust_dns_resolver::error::ResolveErrorKind;
-use trust_dns_resolver::proto::rr::Name;
-use trust_dns_resolver::Resolver;
+use tokio::net::TcpStream;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum ScanError {
     EmptyInput,
-    ConfigError(String),
 }
 
 impl std::fmt::Display for ScanError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ScanError::EmptyInput => write!(f, "No subdomains provided for scanning"),
-            ScanError::ConfigError(e) => write!(f, "Configuration error: {}", e),
         }
     }
 }
@@ -27,21 +24,15 @@ impl std::error::Error for ScanError {}
 enum ScanStatus {
     Valid,
     Invalid,
-    Error,
 }
 
 pub struct Scanner {
-    resolver: Resolver,
     concurrency: usize,
 }
 
 impl Scanner {
     pub async fn new(concurrency: usize) -> Result<Self, ScanError> {
-        let resolver = Resolver::from_system_conf()
-            .map_err(|e| ScanError::ConfigError(e.to_string()))?;
-
         Ok(Scanner {
-            resolver,
             concurrency,
         })
     }
@@ -65,7 +56,6 @@ impl Scanner {
 
         let mut valid_count = 0;
         let mut invalid_count = 0;
-        let mut error_count = 0;
 
         let valid_subdomains: Vec<String> = results
             .into_iter()
@@ -79,10 +69,6 @@ impl Scanner {
                         invalid_count += 1;
                         None
                     }
-                    ScanStatus::Error => {
-                        error_count += 1;
-                        None
-                    }
                 }
             })
             .collect();
@@ -91,10 +77,7 @@ impl Scanner {
         println!("{} {:.2?}", "Time elapsed:".blue(), start_time.elapsed());
         println!("{} {}", "Valid subdomains:".green(), valid_count);
         println!("{} {}", "Invalid subdomains:".yellow(), invalid_count);
-        if error_count > 0 {
-            println!("{} {}", "Scan errors:".red(), error_count);
-        }
-        println!("{} {}", "Total processed:".blue(), valid_count + invalid_count + error_count);
+        println!("{} {}", "Total processed:".blue(), valid_count + invalid_count);
 
         Ok(valid_subdomains)
     }
@@ -102,15 +85,25 @@ impl Scanner {
     async fn perform_scan(&self, subdomains: &[String], pb: &ProgressBar) -> Vec<(String, ScanStatus)> {
         stream::iter(subdomains.to_vec())
             .map(|subdomain| {
-                let resolver = &self.resolver;
-                let pb = &pb;
+                let pb = pb.clone();
                 async move {
-                    let status = self.check_subdomain(resolver, &subdomain);
+                    let addr = format!("{}:80", subdomain);
+                    let status = match tokio::time::timeout(
+                        Duration::from_secs(5),
+                        TcpStream::connect(&addr)
+                    ).await {
+                        Ok(Ok(_)) => ScanStatus::Valid,
+                        Ok(Err(e)) => match e.kind() {
+                            std::io::ErrorKind::ConnectionRefused => ScanStatus::Valid, // Host exists but port is closed
+                            _ => ScanStatus::Invalid,
+                        },
+                        Err(_) => ScanStatus::Invalid,
+                    };
+                    
                     pb.inc(1);
                     match &status {
                         ScanStatus::Valid => pb.println(format!("{} {}", "✓".green(), subdomain.green())),
                         ScanStatus::Invalid => pb.println(format!("{} {}", "✗".yellow(), subdomain.yellow())),
-                        ScanStatus::Error => pb.println(format!("{} {}", "!".red(), subdomain.red())),
                     }
                     (subdomain, status)
                 }
@@ -130,25 +123,6 @@ impl Scanner {
         );
         pb.set_message("Scanning subdomains...");
         pb
-    }
-
-    fn check_subdomain(&self, resolver: &Resolver, subdomain: &str) -> ScanStatus {
-        match Name::from_ascii(subdomain) {
-            Ok(name) => match resolver.lookup_ip(name) {
-                Ok(response) => {
-                    if response.iter().next().is_some() {
-                        ScanStatus::Valid
-                    } else {
-                        ScanStatus::Invalid
-                    }
-                }
-                Err(e) => match e.kind() {
-                    ResolveErrorKind::NoRecordsFound { .. } => ScanStatus::Invalid,
-                    _ => ScanStatus::Error,
-                }
-            },
-            Err(_) => ScanStatus::Error,
-        }
     }
 }
 
