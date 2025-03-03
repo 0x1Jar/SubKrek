@@ -1,15 +1,19 @@
+mod scanner;
+mod utils;
+mod wayback;
+mod wordlist;
+
 use clap::Parser;
 use colored::*;
-use futures::stream::{self, StreamExt};
-use indicatif::{ProgressBar, ProgressStyle};
+use scanner::Scanner;
+use std::path::PathBuf;
 use std::time::Instant;
-use trust_dns_resolver::config::*;
-use trust_dns_resolver::TokioAsyncResolver;
+use wayback::WaybackMachine;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "domain-api-scann",
-    about = "A fast subdomain scanner written in Rust"
+    name = "SubKrek",
+    about = "A fast subdomain scanner with Wayback Machine integration"
 )]
 struct Args {
     #[arg(short, long)]
@@ -17,87 +21,92 @@ struct Args {
 
     #[arg(short, long, default_value = "50")]
     concurrency: usize,
+
+    #[arg(short, long)]
+    wordlist: Option<PathBuf>,
+
+    #[arg(long, help = "Directory containing wordlist files")]
+    wordlist_dir: Option<PathBuf>,
+
+    #[arg(short = 'b', long, help = "Use Wayback Machine to find historical subdomains")]
+    wayback: bool,
+
+    #[arg(short, long, help = "Output file to save results")]
+    output: Option<PathBuf>,
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let start_time = Instant::now();
 
-    println!("\n{}", "🔍 Domain Scanner".bright_blue().bold());
-    println!("{} {}\n", "Target Domain:".yellow(), args.domain);
+    println!("\n{}", "🔍 SubKrek Scanner".bright_blue().bold());
+    
+    // Extract and validate domain
+    let domain = utils::extract_domain(&args.domain)
+        .ok_or("Invalid domain format")?;
+    println!("{} {}\n", "Target Domain:".yellow(), domain);
 
-    // Initialize DNS resolver
-    let resolver = TokioAsyncResolver::tokio(
-        ResolverConfig::default(),
-        ResolverOpts::default(),
-    );
+    // Initialize scanner with default wordlist directory
+    let mut scanner = Scanner::new(
+        args.concurrency,
+        args.wordlist_dir
+            .as_ref()
+            .and_then(|p| p.to_str())
+            .unwrap_or("wordlists"),
+    ).await;
 
-    // Generate subdomains
-    let subdomains = generate_subdomains(&args.domain);
-    let total_domains = subdomains.len();
-
-    println!("{} {}", "Total subdomains to scan:".yellow(), total_domains);
-
-    // Setup progress bar
-    let pb = ProgressBar::new(total_domains as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
-            .unwrap()
-            .progress_chars("#>-"),
-    );
-
-    // Concurrent scanning
-    let results = stream::iter(subdomains)
-        .map(|subdomain| {
-            let resolver = &resolver;
-            let pb = &pb;
-            async move {
-                let result = check_subdomain(resolver, &subdomain).await;
-                pb.inc(1);
-                (subdomain, result)
-            }
-        })
-        .buffered(args.concurrency)
-        .collect::<Vec<_>>()
-        .await;
-
-    pb.finish_with_message("scan completed");
-
-    // Display results
-    println!("\n{}", "Results:".bright_green().bold());
-    let mut valid_count = 0;
-
-    for (subdomain, exists) in results {
-        if exists {
-            println!("✅ {}", subdomain.green());
-            valid_count += 1;
+    // Add specific wordlist if provided
+    if let Some(wordlist_path) = &args.wordlist {
+        if let Some(path_str) = wordlist_path.to_str() {
+            scanner.add_wordlist(path_str)?;
         }
     }
 
-    let elapsed = start_time.elapsed();
-    println!("\n{}", "Scan Summary:".bright_blue().bold());
-    println!("Time elapsed: {:.2?}", elapsed);
-    println!("Valid subdomains found: {}", valid_count);
-}
-
-async fn check_subdomain(resolver: &TokioAsyncResolver, subdomain: &str) -> bool {
-    match resolver.lookup_ip(subdomain).await {
-        Ok(response) => !response.iter().next().is_none(),
-        Err(_) => false,
+    // Add wordlist directory if provided
+    if let Some(dir_path) = &args.wordlist_dir {
+        if let Some(dir_str) = dir_path.to_str() {
+            scanner.add_wordlist_directory(dir_str)?;
+        }
     }
-}
 
-fn generate_subdomains(domain: &str) -> Vec<String> {
-    let prefixes = vec![
-        "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2",
-        "smtp", "secure", "vpn", "m", "shop", "ftp", "mail2", "test", "portal",
-        "web", "dev", "staging", "api", "corp", "admin", "mobile", "mx", "wiki",
-    ];
+    // Fetch historical subdomains if wayback option is enabled
+    if args.wayback {
+        println!("{}", "Fetching historical subdomains from Wayback Machine...".cyan());
+        let wayback = WaybackMachine::new();
+        match wayback.fetch_subdomains(&domain).await {
+            Ok(historical_subdomains) => {
+                println!("Found {} historical subdomains", historical_subdomains.len());
+                // Create a temporary file for historical subdomains
+                let temp_dir = std::env::temp_dir();
+                let temp_file = temp_dir.join("historical_subdomains.txt");
+                std::fs::write(&temp_file, historical_subdomains.join("\n"))?;
+                scanner.add_wordlist(temp_file.to_str().unwrap())?;
+            }
+            Err(e) => eprintln!("Error fetching from Wayback Machine: {}", e),
+        }
+    }
 
-    prefixes
-        .into_iter()
-        .map(|prefix| format!("{}.{}", prefix, domain))
-        .collect()
+    // Perform scan
+    let valid_subdomains = scanner.scan_domains(&domain).await?;
+
+    // Display and save results
+    if !valid_subdomains.is_empty() {
+        println!("\n{}", "Valid Subdomains:".bright_green().bold());
+        for subdomain in &valid_subdomains {
+            println!("✅ {}", subdomain.green());
+        }
+
+        if let Some(output_path) = args.output {
+            std::fs::write(output_path, valid_subdomains.join("\n"))?;
+        }
+    } else {
+        println!("\n{}", "No valid subdomains found.".yellow());
+    }
+
+    let elapsed = start_time.elapsed();
+    println!("\n{}", "Scan Complete!".bright_blue().bold());
+    println!("Time elapsed: {:.2?}", elapsed);
+
+    Ok(())
 }
