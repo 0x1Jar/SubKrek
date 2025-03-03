@@ -34,7 +34,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let start_time = Instant::now();
 
-    println!("\n{}", "🔍 SubKrek Scanner".bright_blue().bold());
+    println!("\n{}", r#"
+     _____       _     _  __          _
+    / ____|     | |   | |/ /         | |
+   | (___  _   _| |__ | ' / _ __ ___| | __
+    \___ \| | | | '_ \|  < | '__/ _ \ |/ /
+    ____) | |_| | |_) | . \| | |  __/   <
+   |_____/ \__,_|_.__/|_|\_\_|  \___|_|\_\
+                                          
+       _____ _____ _____ _____ _____ _____
+      |     |     |   | |   | |   __| __  |
+      |  |  |   --|  _  | | | |   __|    -|
+      |_____|_____|_|___|_|___|_____|__|__|
+                           
+         (⌐■_■) Subdomain Scanner v0.1.0
+    "#.bright_blue().bold());
     
     // Extract and validate domain
     let domain = extract_domain(&args.domain)
