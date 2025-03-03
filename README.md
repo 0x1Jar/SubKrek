@@ -2,10 +2,6 @@
 
 SubTahu is a high-performance, asynchronous subdomain discovery tool written in Rust. It combines modern subdomain scanning techniques with historical data from the Wayback Machine to provide comprehensive domain reconnaissance capabilities.
 
-## Description
-
-SubTahu is designed to help security professionals, researchers, and developers discover subdomains for a given domain. It leverages concurrent scanning and integrates with the Wayback Machine to provide a comprehensive view of a domain's subdomain landscape.
-
 ## What's New
 
 -   **Version 0.1.0:** Initial release of SubTahu.
@@ -109,6 +105,7 @@ The program will display:
 ### Scanner Module
 
 -   Uses asynchronous TCP connections for validation
+-   Implements asynchronous TCP connections for validation
 -   Implements efficient concurrent processing with buffered streams
 -   Progress tracking with customizable display format
 
