@@ -101,7 +101,7 @@ This command will display a help message with all available options and their de
 1.  Simple scan with default settings:
 
     ```bash
-    SubTahu -d google.com
+    SubTahu -d google.com -b
     ```
 
     This command will scan `google.com` for subdomains using the default concurrency level (50).
@@ -114,15 +114,7 @@ This command will display a help message with all available options and their de
 
     This command will scan `google.com` for subdomains using 200 concurrent connections.
 
-3.  Use Wayback Machine to find historical subdomains:
-
-    ```bash
-    SubTahu -d google.com -b
-    ```
-
-    This command will scan `google.com` for subdomains and also search the Wayback Machine for historical subdomains.
-
-4.  Save results to a file:
+3.  Save results to a file:
 
     ```bash
     SubTahu -d google.com -b -o results.txt
