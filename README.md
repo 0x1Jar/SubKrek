@@ -38,53 +38,97 @@ SubTahu is a high-performance, asynchronous subdomain discovery tool written in 
 
     The binary will be available at `target/release/SubTahu`
 
+4.  **Make the binary executable from anywhere:**
+
+    To run the program directly with `SubTahu -d example.com`, you can choose one of the following methods:
+
+    *   **Method 1: Copy the binary to a directory in your system's PATH (recommended for system-wide access):**
+
+        1.  Ensure the binary is executable:
+
+            ```bash
+            chmod +x target/release/SubTahu
+            ```
+
+        2.  Copy the binary to a directory in your system's PATH (e.g., `/usr/local/bin`):
+
+            ```bash
+            sudo cp target/release/SubTahu /usr/local/bin
+            ```
+
+            You might be prompted for your password.
+
+    *   **Method 2: Add the `target/release` directory to your PATH environment variable (for access within your user account):**
+
+        1.  Add this line to your `.bashrc` or `.zshrc` file:
+
+            ```bash
+            export PATH="$PATH:/yourpath/SubTahu/target/release"
+            ```
+
+        2.  After modifying the PATH, restart your terminal or run `source ~/.bashrc` or `source ~/.zshrc` to apply the changes.
+
 ## Usage
+
+SubTahu is a command-line tool. To use it, open your terminal. If you followed step 4 in the installation instructions, you can run the program directly. Otherwise, navigate to the `target/release` directory first.
 
 Basic usage:
 
 ```bash
-cargo run -- -d example.com
+SubTahu -d example.com
 ```
+
+This command will scan the domain `example.com` for subdomains using the default settings.
 
 ### Command Line Options
 
 -   `-h, --help`: Show help message and exit
--   `-d, --domain <DOMAIN>`: Target domain to scan (required)
--   `-c, --concurrency <NUMBER>`: Number of concurrent connections (default: 50)
--   `-b, --wayback`: Use Wayback Machine to find historical subdomains
--   `-o, --output <FILE>`: Save results to a file
+-   `-d, --domain <DOMAIN>`: Target domain to scan (required).  Specify the domain you want to scan for subdomains.
+-   `-c, --concurrency <NUMBER>`: Number of concurrent connections (default: 50).  Increase this number for faster scanning, but be mindful of your system's resources and the target server's rate limiting.
+-   `-b, --wayback`: Use Wayback Machine to find historical subdomains.  This option enables the tool to search the Wayback Machine for historical subdomain records.
+-   `-o, --output <FILE>`: Save results to a file.  Specify a file path to save the discovered subdomains to a file.
 
 To see all available options:
 
 ```bash
-cargo run -- --help
+SubTahu --help
 ```
+
+This command will display a help message with all available options and their descriptions.
 
 ### Examples
 
 1.  Simple scan with default settings:
 
     ```bash
-    cargo run -- -d google.com
+    SubTahu -d google.com
     ```
+
+    This command will scan `google.com` for subdomains using the default concurrency level (50).
 
 2.  Scan with increased concurrency:
 
     ```bash
-    cargo run -- -d google.com -c 200
+    SubTahu -d google.com -c 200
     ```
+
+    This command will scan `google.com` for subdomains using 200 concurrent connections.
 
 3.  Use Wayback Machine to find historical subdomains:
 
     ```bash
-    cargo run -- -d google.com -b
+    SubTahu -d google.com -b
     ```
+
+    This command will scan `google.com` for subdomains and also search the Wayback Machine for historical subdomains.
 
 4.  Save results to a file:
 
     ```bash
-    cargo run -- -d google.com -b -o results.txt
+    SubTahu -d google.com -b -o results.txt
     ```
+
+    This command will scan `google.com` for subdomains, search the Wayback Machine, and save the results to a file named `results.txt`.
 
 ## Output
 
