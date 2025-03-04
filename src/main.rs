@@ -45,9 +45,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ░░█████████  ░░████████ ████████     █████   ░░████████ ████ █████ ░░████████
  ░░░░░░░░░    ░░░░░░░░ ░░░░░░░░     ░░░░░     ░░░░░░░░ ░░░░ ░░░░░   ░░░░░░░░ 
  
-                (⌐■_■) Subdomain Scanner 
+                    (⌐■_■) Subdomain Scanner 
 
-                    Created by 0x1Jar
+                            by 0x1Jar
     "#.bright_blue().bold());
     
     // Extract and validate domain

@@ -101,13 +101,13 @@ impl WaybackMachine {
         
         let mut subdomains = HashSet::new();
         let mut invalid_count = 0;
-        let mut processed = 0;
+        // let mut processed = 0;
 
         for url in urls {
-            processed += 1;
-            if processed % 1000 == 0 {
-                self.info(&format!("Processed {} URLs", processed));
-            }
+            // processed += 1;
+            // if processed % 1000 == 0 {
+            //     self.info(&format!("Processed {} URLs", processed));
+            // }
 
             match re.captures(url) {
                 Some(captures) => {
