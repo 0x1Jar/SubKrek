@@ -43,7 +43,7 @@ SubTahu is a high-performance, asynchronous subdomain discovery tool written in 
 Basic usage:
 
 ```bash
-SubTahu -d example.com
+cargo run -- -d example.com
 ```
 
 ### Command Line Options
@@ -57,7 +57,7 @@ SubTahu -d example.com
 To see all available options:
 
 ```bash
-SubTahu --help
+cargo run -- --help
 ```
 
 ### Examples
@@ -65,25 +65,25 @@ SubTahu --help
 1.  Simple scan with default settings:
 
     ```bash
-    SubTahu -d google.com
+    cargo run -- -d google.com
     ```
 
 2.  Scan with increased concurrency:
 
     ```bash
-    SubTahu -d google.com -c 200
+    cargo run -- -d google.com -c 200
     ```
 
 3.  Use Wayback Machine to find historical subdomains:
 
     ```bash
-    SubTahu -d google.com -b
+    cargo run -- -d google.com -b
     ```
 
 4.  Save results to a file:
 
     ```bash
-    SubTahu -d google.com -b -o results.txt
+    cargo run -- -d google.com -b -o results.txt
     ```
 
 ## Output
